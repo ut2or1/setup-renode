@@ -1,0 +1,5 @@
+node_modules/
+src/          
+dist/index.js.map
+*.tar.gz
+*.zip

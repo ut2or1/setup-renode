@@ -1,0 +1,18 @@
+{
+  "name": "setup-renode-action",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-dependency GitHub/Gitea Action to download, cache and extract Renode Portable",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
