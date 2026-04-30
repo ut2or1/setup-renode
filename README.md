@@ -99,7 +99,7 @@ jobs:
         with:
           version: ${{ env.RENODE_VERSION }}
           url: ${{ runner.os == 'Windows' 
-            && 'https://github.com/renode/renode/releases/download/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.windows-portable.zip'
+            && 'https://github.com/renode/renode/releases/download/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.windows-portable-dotnet.zip'
             || 'https://github.com/renode/renode/releases/download/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.linux-portable.tar.gz' }}
 
       - name: Verify
