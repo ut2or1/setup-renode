@@ -15,11 +15,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-2025-vs2026]
     runs-on: ${{ matrix.os }}
-    
-    env:
-      ARCHIVE_NAME_LINUX: 'renode-${{ env.RENODE_VERSION }}.linux-portable.tar.gz'
-      ARCHIVE_NAME_WINDOWS: 'renode-${{ env.RENODE_VERSION }}.windows-portable.zip'
-      CACHE_KEY_PREFIX: 'renode-portable'
 
     steps:
       - uses: actions/checkout@v4
@@ -27,85 +22,71 @@ jobs:
       - name: Cache Renode Archive
         uses: actions/cache@v4
         with:
-          path: 
-            - .renode-cache/renode-*.tar.gz
-            - .renode-cache/renode-*.zip
-          key: ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-${{ env.RENODE_VERSION }}
-          restore-keys: 
-            - ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-
-            - ${{ env.CACHE_KEY_PREFIX }}-
+          path: |
+            .renode-cache/renode-*.tar.gz
+            .renode-cache/renode-*.zip
+          key: renode-portable-${{ runner.os }}-${{ env.RENODE_VERSION }}
+          restore-keys: |
+            renode-portable-${{ runner.os }}-
+            renode-portable-
 
-      - name: Set Renode download variables
-        id: renode-config
+      - name: Set platform variables
+        id: platform
         shell: bash
         run: |
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            echo "archive_name=${{ env.ARCHIVE_NAME_WINDOWS }}" >> $GITHUB_OUTPUT
-            echo "download_url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/${{ env.ARCHIVE_NAME_WINDOWS }}" >> $GITHUB_OUTPUT
-            echo "binary_name=Renode.exe" >> $GITHUB_OUTPUT
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "archive=renode-${{ env.RENODE_VERSION }}.windows-portable.zip" >> $GITHUB_OUTPUT
+            echo "url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.windows-portable.zip" >> $GITHUB_OUTPUT
+            echo "bin=Renode.exe" >> $GITHUB_OUTPUT
           else
-            echo "archive_name=${{ env.ARCHIVE_NAME_LINUX }}" >> $GITHUB_OUTPUT
-            echo "download_url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/${{ env.ARCHIVE_NAME_LINUX }}" >> $GITHUB_OUTPUT
-            echo "binary_name=renode" >> $GITHUB_OUTPUT
+            echo "archive=renode-${{ env.RENODE_VERSION }}.linux-portable.tar.gz" >> $GITHUB_OUTPUT
+            echo "url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.linux-portable.tar.gz" >> $GITHUB_OUTPUT
+            echo "bin=renode" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup Renode (First Run)
-        id: renode1
+      - name: Setup Renode First Run
+        id: run1
         uses: ./
         with:
           version: ${{ env.RENODE_VERSION }}
-          url: ${{ steps.renode-config.outputs.download_url }}
-          cache-dir: '.renode-cache'
-          strip-components: '1'
+          url: ${{ steps.platform.outputs.url }}
+          cache-dir: .renode-cache
 
-      - name: Verify First Run Outputs
+      - name: Verify First Run
+        shell: bash
         run: |
-          echo "Renode path: ${{ steps.renode1.outputs.renode-path }}"
-          echo "Cache hit: ${{ steps.renode1.outputs.cache-hit }}"
-          echo "Extracted: ${{ steps.renode1.outputs.extracted }}"
-          if [[ ! -f "${{ steps.renode1.outputs.renode-path }}/${{ steps.renode-config.outputs.binary_name }}" ]]; then
-            echo "Binary not found at expected path"
-            exit 1
-          fi
+          echo "Path: ${{ steps.run1.outputs.renode-path }}"
+          echo "Cache hit: ${{ steps.run1.outputs.cache-hit }}"
+          test -f "${{ steps.run1.outputs.renode-path }}/${{ steps.platform.outputs.bin }}" || exit 1
 
-      - name: Setup Renode (Second Run - cache verification)
-        id: renode2
+      - name: Setup Renode Second Run
+        id: run2
         uses: ./
         with:
           version: ${{ env.RENODE_VERSION }}
-          url: 'https://example.com/unused-url.tar.gz'
-          cache-dir: '.renode-cache'
-          strip-components: '1'
+          url: https://example.com/unused.tar.gz
+          cache-dir: .renode-cache
 
-      - name: Verify Cache Hit on Second Run
+      - name: Verify Cache Hit
+        shell: bash
         run: |
-          if [[ "${{ steps.renode2.outputs.cache-hit }}" != "true" ]]; then
-            echo "Cache miss on second run! Expected cache-hit=true"
+          if [ "${{ steps.run2.outputs.cache-hit }}" != "true" ]; then
+            echo "ERROR: Cache miss on second run"
             exit 1
           fi
-          echo "Cache hit confirmed: archive was reused"
-          if [[ "${{ steps.renode2.outputs.extracted }}" != "false" ]]; then
-            echo "Warning: extraction ran again despite cache hit"
-          else
-            echo "Extraction skipped: binary already present"
-          fi
+          echo "SUCCESS: Cache hit confirmed"
 
       - name: Run Renode Version Check
+        shell: bash
         run: |
-          RENODE_BIN="${{ steps.renode1.outputs.renode-path }}/${{ steps.renode-config.outputs.binary_name }}"
-          echo "Running: $RENODE_BIN --version"
-          "$RENODE_BIN" --version
-          VERSION_OUTPUT=$("$RENODE_BIN" --version 2>&1)
-          if [[ ! "$VERSION_OUTPUT" =~ ${{ env.RENODE_VERSION }} ]]; then
-            echo "Version mismatch: expected ${{ env.RENODE_VERSION }}, got: $VERSION_OUTPUT"
-          else
-            echo "Version match: $VERSION_OUTPUT"
-          fi
+          bin="${{ steps.run1.outputs.renode-path }}/${{ steps.platform.outputs.bin }}"
+          "$bin" --version
 
-      - name: Debug: Show cache directory contents
+      - name: Debug Cache Contents
         if: always()
+        shell: bash
         run: |
-          echo "Cache directory (.renode-cache):"
-          ls -la .renode-cache/ 2>/dev/null || echo "(empty or not accessible)"
-          echo "Extracted directory:"
-          ls -la "${{ steps.renode1.outputs.renode-path }}/" 2>/dev/null || echo "(not accessible)"
+          echo "=== Cache dir ==="
+          ls -la .renode-cache/ || true
+          echo "=== Extracted dir ==="
+          ls -la "${{ steps.run1.outputs.renode-path }}/" || true
