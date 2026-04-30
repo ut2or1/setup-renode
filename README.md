@@ -2,15 +2,15 @@
 
 GitHub/Gitea Action to download, cache, and extract **Renode**. Zero external dependencies, cross-platform (Windows/Linux/macOS), works with Node 24+ and Bun.
 
-## ✨ Features
+## Features
 
-- 🔄 **Smart caching**: Archives cached by version, not URL — works with any download link
-- 🌐 **Cross-platform**: Built-in `tar` support on Windows 10+, Linux, macOS
-- 🚀 **Fast**: Skips download and extraction if cache hit
-- 🔧 **Configurable**: Custom cache directory, `strip-components`, version control
-- 📦 **Zero dependencies**: Pure TypeScript, no `@actions/*` required
+- **Smart caching**: Archives cached by version, not URL — works with any download link
+- **Cross-platform**: Built-in `tar` support on Windows 10+, Linux, macOS
+- **Fast**: Skips download and extraction if cache hit
+- **Configurable**: Custom cache directory, `strip-components`, version control
+- **Zero dependencies**: Pure TypeScript, no `@actions/*` required
 
-## 🚀 Usage
+## Usage
 
 ```yaml
 steps:
@@ -27,7 +27,7 @@ steps:
     run: ${{ steps.renode.outputs.renode-path }}/renode --version
 ```
 
-## 📥 Inputs
+## Inputs
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
@@ -36,7 +36,7 @@ steps:
 | `cache-dir` | ❌ | `.renode-cache` | Directory to store cached archives |
 | `strip-components` | ❌ | `1` | Leading directories to remove during extraction |
 
-## 📤 Outputs
+## Outputs
 
 | Name | Description |
 |------|-------------|
@@ -44,7 +44,7 @@ steps:
 | `cache-hit` | `true` if archive was already cached |
 | `extracted` | `true` if extraction was performed in this run |
 
-## 💾 Caching Strategy
+## Caching Strategy
 
 The action caches **downloaded archives** (not extracted files):
 
@@ -68,7 +68,7 @@ The action caches **downloaded archives** (not extracted files):
     restore-keys: renode-${{ runner.os }}-
 ```
 
-## 🧪 Example Workflow
+## Example Workflow
 
 ```yaml
 name: CI
@@ -106,7 +106,7 @@ jobs:
         run: ${{ steps.renode.outputs.renode-path }}/renode --version
 ```
 
-## 🔧 Development
+## Development
 
 ```bash
 # Install dependencies
@@ -119,6 +119,6 @@ npm run build
 act -j test
 ```
 
-## 📜 License
+## License
 
 MIT — see [LICENSE](LICENSE) file.
