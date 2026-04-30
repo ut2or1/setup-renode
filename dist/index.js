@@ -41,7 +41,7 @@ const cp = __importStar(require("child_process"));
 const isWin = os.platform() === 'win32';
 /**
  * Retrieves an input variable from the CI environment.
- * Works with GitHub Actions and Gitea Actions (v2+ format).
+ * Compatible with GitHub Actions and Gitea Actions (v2+ format).
  */
 function getInput(name) {
     return process.env[`INPUT_${name.replace(/-/g, '_').toUpperCase()}`] ?? '';
@@ -56,6 +56,18 @@ async function setOutput(name, value) {
         await fs.appendFile(outputFile, `${name}=${value}\n`);
     }
 }
+/**
+ * Checks if a file exists and is accessible.
+ */
+async function fileExists(filePath) {
+    try {
+        const stats = await fs.stat(filePath);
+        return stats.isFile();
+    }
+    catch {
+        return false;
+    }
+}
 async function run() {
     const version = getInput('version');
     const url = getInput('url');
@@ -65,43 +77,49 @@ async function run() {
         throw new Error('Inputs "version" and "url" are required');
     }
     await fs.mkdir(cacheDir, { recursive: true });
-    // Determine file extensions and paths
-    const isZip = url.toLowerCase().endsWith('.zip');
-    const archiveExt = isZip ? 'zip' : 'tar.gz';
-    const archivePath = path.join(cacheDir, `renode-${version}.${archiveExt}`);
+    // Determine paths
     const extractDir = path.join(cacheDir, version);
     const binName = isWin ? 'Renode.exe' : 'renode';
     const binPath = path.join(extractDir, binName);
-    // Check if the downloaded archive is already cached locally
+    // Search for archive in cache by version, NOT by URL extension
+    // This allows cache hits even when the input URL has a different extension
+    const possibleArchiveNames = [
+        `renode-${version}.zip`,
+        `renode-${version}.tar.gz`
+    ];
+    let archivePath = null;
     let archiveCacheHit = false;
-    try {
-        await fs.stat(archivePath);
-        archiveCacheHit = true;
-        console.log(`Archive cache hit: ${archivePath}`);
+    for (const archiveName of possibleArchiveNames) {
+        const candidatePath = path.join(cacheDir, archiveName);
+        if (await fileExists(candidatePath)) {
+            archivePath = candidatePath;
+            archiveCacheHit = true;
+            console.log(`Archive cache hit: ${archivePath}`);
+            break;
+        }
     }
-    catch {
-        console.log(`Archive missing. Downloading from ${url}`);
-    }
-    // Download archive only if not cached
+    // Download only if archive not found in cache
     if (!archiveCacheHit) {
+        // Determine extension from URL for saving the downloaded file
+        const isZip = url.toLowerCase().endsWith('.zip');
+        const archiveExt = isZip ? 'zip' : 'tar.gz';
+        archivePath = path.join(cacheDir, `renode-${version}.${archiveExt}`);
+        console.log(`Archive missing. Downloading from ${url}`);
         const res = await fetch(url);
-        if (!res.ok)
+        if (!res.ok) {
             throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
+        }
         const buf = await res.arrayBuffer();
         await fs.writeFile(archivePath, Buffer.from(buf));
         console.log(`Archive saved: ${archivePath}`);
     }
     // Check if Renode is already extracted and executable
     let extracted = false;
-    try {
-        const stats = await fs.stat(binPath);
-        if (stats.isFile())
-            extracted = true;
+    if (await fileExists(binPath)) {
+        extracted = true;
+        console.log(`Binary already extracted: ${binPath}`);
     }
-    catch {
-        // Binary missing or invalid → will extract
-    }
-    // Extract only if necessary
+    // Extract only if binary is missing
     if (!extracted) {
         console.log(`Extracting archive to ${extractDir}...`);
         await fs.mkdir(extractDir, { recursive: true });
@@ -113,7 +131,9 @@ async function run() {
             try {
                 await fs.chmod(binPath, 0o755);
             }
-            catch { }
+            catch (err) {
+                console.warn(`Could not set executable permissions: ${err}`);
+            }
         }
         console.log(`Extraction complete`);
     }
@@ -121,9 +141,10 @@ async function run() {
     await setOutput('renode-path', extractDir);
     await setOutput('cache-hit', String(archiveCacheHit));
     await setOutput('extracted', String(extracted));
+    console.log(`Ready: Renode at ${extractDir}`);
 }
 // Execute and handle fatal errors
 run().catch(err => {
-    console.error('Action failed:', err.message);
+    console.error(`Action failed: ${err.message}`);
     process.exit(1);
 });
