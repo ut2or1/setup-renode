@@ -1,0 +1,34 @@
+name: 'Setup Renode'
+description: 'Downloads, caches (archive-level), and extracts Renode. Zero-dependency, cross-platform.'
+author: 'ut2'
+
+inputs:
+  version:
+    description: 'Renode version (e.g., 1.16.1)'
+    required: true
+  url:
+    description: 'Direct download URL for the portable archive (.zip or .tar.gz)'
+    required: true
+  cache-dir:
+    description: 'Directory to store the cached archive and extracted files'
+    required: false
+    default: '.renode-cache'
+  strip-components:
+    description: 'Number of leading directory components to remove during extraction'
+    required: false
+    default: '1'
+
+outputs:
+  renode-path:
+    description: 'Absolute path to the extracted Renode directory'
+    value: ${{ steps.renode.outputs.renode-path }}
+  cache-hit:
+    description: 'True if the archive was already present in the cache directory'
+    value: ${{ steps.renode.outputs.cache-hit }}
+  extracted:
+    description: 'True if extraction was performed during this run'
+    value: ${{ steps.renode.outputs.extracted }}
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
