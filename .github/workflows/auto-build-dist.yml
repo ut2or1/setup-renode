@@ -32,8 +32,10 @@ jobs:
         with:
           node-version: '24'
 
-      - run: npm ci
-      - run: npm run build
+      - name: Install & Build
+        run: |
+          npm install
+          npm run build
 
       - name: Commit dist/ if changed
         if: github.event_name == 'push'
