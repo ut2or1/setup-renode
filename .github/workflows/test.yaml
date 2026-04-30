@@ -27,13 +27,13 @@ jobs:
       - name: Cache Renode Archive
         uses: actions/cache@v4
         with:
-          path: |
-            .renode-cache/renode-*.tar.gz
-            .renode-cache/renode-*.zip
+          path: 
+            - .renode-cache/renode-*.tar.gz
+            - .renode-cache/renode-*.zip
           key: ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-${{ env.RENODE_VERSION }}
-          restore-keys: |
-            ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-
-            ${{ env.CACHE_KEY_PREFIX }}-
+          restore-keys: 
+            - ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-
+            - ${{ env.CACHE_KEY_PREFIX }}-
 
       - name: Set Renode download variables
         id: renode-config
@@ -63,7 +63,6 @@ jobs:
           echo "Renode path: ${{ steps.renode1.outputs.renode-path }}"
           echo "Cache hit: ${{ steps.renode1.outputs.cache-hit }}"
           echo "Extracted: ${{ steps.renode1.outputs.extracted }}"
-          # Проверяем, что бинарник существует
           if [[ ! -f "${{ steps.renode1.outputs.renode-path }}/${{ steps.renode-config.outputs.binary_name }}" ]]; then
             echo "Binary not found at expected path"
             exit 1
@@ -74,7 +73,7 @@ jobs:
         uses: ./
         with:
           version: ${{ env.RENODE_VERSION }}
-          url: 'https://example.com/unused-url.tar.gz'  # Игнорируется при cache-hit
+          url: 'https://example.com/unused-url.tar.gz'
           cache-dir: '.renode-cache'
           strip-components: '1'
 
@@ -85,8 +84,6 @@ jobs:
             exit 1
           fi
           echo "Cache hit confirmed: archive was reused"
-          
-          # Дополнительно: проверяем, что extraction не повторялась
           if [[ "${{ steps.renode2.outputs.extracted }}" != "false" ]]; then
             echo "Warning: extraction ran again despite cache hit"
           else
@@ -96,10 +93,8 @@ jobs:
       - name: Run Renode Version Check
         run: |
           RENODE_BIN="${{ steps.renode1.outputs.renode-path }}/${{ steps.renode-config.outputs.binary_name }}"
-          echo "🔍 Running: $RENODE_BIN --version"
+          echo "Running: $RENODE_BIN --version"
           "$RENODE_BIN" --version
-          
-          # Опционально: проверяем, что версия совпадает с ожидаемой
           VERSION_OUTPUT=$("$RENODE_BIN" --version 2>&1)
           if [[ ! "$VERSION_OUTPUT" =~ ${{ env.RENODE_VERSION }} ]]; then
             echo "Version mismatch: expected ${{ env.RENODE_VERSION }}, got: $VERSION_OUTPUT"
