@@ -35,8 +35,8 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            echo "archive=renode-${{ env.RENODE_VERSION }}.windows-portable.zip" >> $GITHUB_OUTPUT
-            echo "url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.windows-portable.zip" >> $GITHUB_OUTPUT
+            echo "archive=renode-${{ env.RENODE_VERSION }}.windows-portable-dotnet.zip" >> $GITHUB_OUTPUT
+            echo "url=${{ env.RENODE_BASE_URL }}/v${{ env.RENODE_VERSION }}/renode-${{ env.RENODE_VERSION }}.windows-portable-dotnet.zip" >> $GITHUB_OUTPUT
             echo "bin=Renode.exe" >> $GITHUB_OUTPUT
           else
             echo "archive=renode-${{ env.RENODE_VERSION }}.linux-portable.tar.gz" >> $GITHUB_OUTPUT
